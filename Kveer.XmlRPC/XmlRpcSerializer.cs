@@ -125,29 +125,55 @@ namespace CookComputing.XmlRpc
 						&& Attribute.IsDefined(pis[i], typeof(ParamArrayAttribute)))
 					{
 						var ary = (Array)request.args[i];
-						foreach (var o in ary)
-						{
-							if (o == null)
-								throw new XmlRpcNullParameterException(
-									"Null parameter in params array");
-							xtw.WriteStartElement("", "param", "");
-							Serialize(xtw, o, mappingAction);
-							xtw.WriteEndElement();
-						}
+						                foreach (var o in ary)
+                {
+                    xtw.WriteStartElement("", "param", "");
+                    if (o == null)
+                    {
+                        if ((NonStandard & XmlRpcNonStandard.AllowNullParams) != 0)
+                        {
+                            xtw.WriteStartElement("", "value", "");
+                            xtw.WriteStartElement("", "nil", "");
+                            xtw.WriteEndElement(); 
+                            xtw.WriteEndElement(); 
+                        }
+                        else
+                        {
+                            throw new XmlRpcNullParameterException("Null parameter in params array");
+                        }
+                    }
+                    else
+                    {
+                        Serialize(xtw, o, mappingAction);
+                    }
+                    xtw.WriteEndElement(); 
+                }
+                break;
+            }
+        }
 
-						break;
-					}
-				}
-
-				if (request.args[i] == null)
-					throw new XmlRpcNullParameterException(string.Format(
-															   "Null method parameter #{0}", i + 1));
-				xtw.WriteStartElement("", "param", "");
-				Serialize(xtw, request.args[i], mappingAction);
-				xtw.WriteEndElement();
-			}
-		}
-
+        xtw.WriteStartElement("", "param", "");
+        if (request.args[i] == null)
+        {
+            if ((NonStandard & XmlRpcNonStandard.AllowNullParams) != 0)
+            {
+                xtw.WriteStartElement("", "value", "");
+                xtw.WriteStartElement("", "nil", "");
+                xtw.WriteEndElement(); 
+                xtw.WriteEndElement(); 
+            }
+            else
+            {
+                throw new XmlRpcNullParameterException($"Null method parameter #{i + 1}");
+            }
+        }
+        else
+        {
+            Serialize(xtw, request.args[i], mappingAction);
+        }
+        xtw.WriteEndElement();
+    }
+}
 		private void SerializeStructParams(XmlTextWriter xtw, XmlRpcRequest request,
 										   MappingAction mappingAction)
 		{
@@ -164,12 +190,27 @@ namespace CookComputing.XmlRpc
 			xtw.WriteStartElement("", "struct", "");
 			for (var i = 0; i < request.args.Length; i++)
 			{
-				if (request.args[i] == null)
-					throw new XmlRpcNullParameterException(string.Format(
-															   "Null method parameter #{0}", i + 1));
+			
 				xtw.WriteStartElement("", "member", "");
 				xtw.WriteElementString("name", pis[i].Name);
-				Serialize(xtw, request.args[i], mappingAction);
+				                if (request.args[i] == null)
+                {
+                    if ((NonStandard & XmlRpcNonStandard.AllowNullParams) != 0)
+                    {
+                        xtw.WriteStartElement("", "value", "");
+                        xtw.WriteStartElement("", "nil", "");
+                        xtw.WriteEndElement(); 
+                        xtw.WriteEndElement();
+                    }
+                    else
+                    {
+                        throw new XmlRpcNullParameterException($"Null method parameter #{i + 1}");
+                    }
+                }
+                else
+                {
+                    Serialize(xtw, request.args[i], mappingAction);
+                }
 				xtw.WriteEndElement();
 			}
 
