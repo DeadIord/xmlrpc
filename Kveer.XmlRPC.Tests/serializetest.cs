@@ -1303,5 +1303,47 @@ namespace Kveer.XmlRPC.Tests
 			Assert.IsTrue(xmlRpcStruct["ms"] is string);
 			Assert.AreEqual((string) xmlRpcStruct["ms"], "another test string");
 		}
+		        //---------------------- null parameter with flag --------------------------// 
+        [Test]
+        public void NullParameter_WithAllowNullParams()
+        {
+            Stream stm = new MemoryStream();
+            var req = new XmlRpcRequest();
+            req.args = new object[] { null };
+            req.method = "Foo";
+
+            var ser = new XmlRpcSerializer();
+            ser.NonStandard = XmlRpcNonStandard.AllowNullParams; 
+
+            ser.SerializeRequest(stm, req);
+            stm.Position = 0;
+            TextReader tr = new StreamReader(stm);
+            var reqstr = tr.ReadToEnd();
+
+            Assert.AreEqual(
+                @"<?xml version=""1.0""?>
+<methodCall>
+  <methodName>Foo</methodName>
+  <params>
+    <param>
+      <value>
+        <nil />
+      </value>
+    </param>
+  </params>
+</methodCall>".Replace("\r\n", Environment.NewLine), reqstr);
+        }
+        [Test]
+        public void NullParam_ThrowsWithoutFlag()
+        {
+            Stream stm = new MemoryStream();
+            var req = new XmlRpcRequest();
+            req.args = new object[] { null };
+            req.method = "Foo";
+
+            var ser = new XmlRpcSerializer();
+
+            Assert.That(() => ser.SerializeRequest(stm, req), Throws.TypeOf<XmlRpcNullParameterException>());
+        }
 	}
 }
